@@ -1,0 +1,37 @@
+name: Debian SSH Direto
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Preparar Debian e SSH
+        run: |
+          # Inicia o container Debian
+          docker run -d --name meu_debian debian:latest sleep infinity
+          
+          # Instala o SSH e ferramentas básicas dentro do Debian
+          docker exec meu_debian apt update
+          docker exec meu_debian apt install -y openssh-server sudo curl tmate
+          
+          # Configura o tmate para criar o túnel direto
+          docker exec -d meu_debian tmate -S /tmp/tmate.sock new-session -d
+          docker exec meu_debian tmate -S /tmp/tmate.sock wait tmate-ready
+          
+          echo "===================================================="
+          echo "CONEXÃO LIBERADA! COPIE O COMANDO ABAIXO:"
+          echo "===================================================="
+          # Mostra o comando SSH pronto com IP e Porta
+          docker exec meu_debian tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
+          echo "===================================================="
+          echo "DICA: Cole o comando acima no seu CMD ou PowerShell."
+          echo "Não precisa de senha, o acesso é automático!"
+          echo "===================================================="
+
+      - name: 2. Manter Conexão Ativa
+        run: |
+          # Mantém o container rodando para você usar
+          docker logs -f meu_debian
